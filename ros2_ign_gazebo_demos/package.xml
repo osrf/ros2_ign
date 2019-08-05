@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="2">
+  <name>ros2_ign_gazebo_demos</name>
+  <version>0.1.0</version>
+  <description>Demos using Ignition Gazebo simulation with ROS 2.</description>
+  <license>Apache 2.0</license>
+  <maintainer email="louise@openrobotics.org">Louise Poubel</maintainer>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <exec_depend>ros2_ign_bridge</exec_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
