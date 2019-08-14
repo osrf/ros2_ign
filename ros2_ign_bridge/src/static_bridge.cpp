@@ -34,11 +34,13 @@ int main(int argc, char * argv[])
 
   // bridge one example topic
   std::string topic_name = "chatter";
-  std::string ros2_type_name = "std_msgs/String";
+  std::string ros2_type_name = "std_msgs/msg/String";
   std::string ign_type_name = "ignition.msgs.StringMsg";
 
   auto handles = ros2_ign_bridge::create_bidirectional_bridge(
     ros2_node, ign_node, ros2_type_name, ign_type_name, topic_name);
+
+  rclcpp::spin(ros2_node);
 
   // Wait for ign node shutdown
   ignition::transport::waitForShutdown();

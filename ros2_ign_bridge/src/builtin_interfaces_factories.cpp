@@ -29,7 +29,7 @@ get_factory_builtin_interfaces(
 {
   // mapping from string to specialized template
   if (
-    (ros2_type_name == "std_msgs/String" || ros2_type_name == "") &&
+    (ros2_type_name == "std_msgs/msg/String" || ros2_type_name == "") &&
     ign_type_name == "ignition.msgs.StringMsg")
   {
     return std::make_shared<
@@ -37,7 +37,7 @@ get_factory_builtin_interfaces(
         std_msgs::msg::String,
         ignition::msgs::StringMsg
       >
-    >("std_msgs/String", ign_type_name);
+    >("std_msgs/msg/String", ign_type_name);
   }
   return std::shared_ptr<FactoryInterface>();
 }
