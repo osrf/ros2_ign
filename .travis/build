@@ -9,7 +9,7 @@ export DEBIAN_FRONTEND=noninteractive
 # Dependencies.
 echo "deb [trusted=yes] http://packages.osrfoundation.org/gazebo/ubuntu-stable bionic main" > /etc/apt/sources.list.d/gazebo-stable.list
 echo "deb [trusted=yes] http://packages.osrfoundation.org/gazebo/ubuntu-prerelease bionic main" > /etc/apt/sources.list.d/gazebo-prerelease.list
-echo "deb [trusted=yes] http://packages.ros.org/ros2/ubuntu bionic main" > /etc/apt/sources.list.d/ros2-latest.list'
+echo "deb [trusted=yes] http://packages.ros.org/ros2/ubuntu bionic main" > /etc/apt/sources.list.d/ros2-latest.list
 apt-get update -qq
 apt-get install -qq -y libignition-msgs4-dev \
                        libignition-transport7-dev \
