@@ -36,9 +36,10 @@ int main(int argc, char * argv[])
   std::string topic_name = "chatter";
   std::string ros2_type_name = "std_msgs/msg/String";
   std::string ign_type_name = "ignition.msgs.StringMsg";
+  size_t queue_size = 10;
 
   auto handles = ros2_ign_bridge::create_bidirectional_bridge(
-    ros2_node, ign_node, ros2_type_name, ign_type_name, topic_name);
+    ros2_node, ign_node, ros2_type_name, ign_type_name, topic_name, queue_size);
 
   rclcpp::spin(ros2_node);
 

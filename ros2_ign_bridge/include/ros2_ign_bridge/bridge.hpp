@@ -51,12 +51,13 @@ create_bridge_from_ros2_to_ign(
   const std::string & ros2_type_name,
   const std::string & ros2_topic_name,
   const std::string & ign_type_name,
-  const std::string & ign_topic_name)
+  const std::string & ign_topic_name,
+  size_t queue_size)
 {
   auto factory = get_factory(ros2_type_name, ign_type_name);
   auto ign_pub = factory->create_ign_publisher(ign_node, ign_topic_name);
 
-  auto ros2_sub = factory->create_ros2_subscriber(ros2_node, ros2_topic_name, ign_pub);
+  auto ros2_sub = factory->create_ros2_subscriber(ros2_node, ros2_topic_name, queue_size, ign_pub);
 
   BridgeRos2toIgnHandles handles;
   handles.ros2_subscriber = ros2_sub;
@@ -71,10 +72,11 @@ create_bridge_from_ign_to_ros2(
   const std::string & ign_type_name,
   const std::string & ign_topic_name,
   const std::string & ros2_type_name,
-  const std::string & ros2_topic_name)
+  const std::string & ros2_topic_name,
+  size_t queue_size)
 {
   auto factory = get_factory(ros2_type_name, ign_type_name);
-  auto ros2_pub = factory->create_ros2_publisher(ros2_node, ros2_topic_name);
+  auto ros2_pub = factory->create_ros2_publisher(ros2_node, ros2_topic_name, queue_size);
 
   factory->create_ign_subscriber(ign_node, ign_topic_name, ros2_pub);
 
@@ -90,15 +92,16 @@ create_bidirectional_bridge(
   std::shared_ptr<ignition::transport::Node> ign_node,
   const std::string & ros2_type_name,
   const std::string & ign_type_name,
-  const std::string & topic_name)
+  const std::string & topic_name,
+  size_t queue_size = 10)
 {
   BridgeHandles handles;
   handles.bridgeRos2toIgn = create_bridge_from_ros2_to_ign(
     ros2_node, ign_node,
-    ros2_type_name, topic_name, ign_type_name, topic_name);
+    ros2_type_name, topic_name, ign_type_name, topic_name, queue_size);
   handles.bridgeIgntoRos2 = create_bridge_from_ign_to_ros2(
     ign_node, ros2_node,
-    ign_type_name, topic_name, ros2_type_name, topic_name);
+    ign_type_name, topic_name, ros2_type_name, topic_name, queue_size);
   return handles;
 }
 

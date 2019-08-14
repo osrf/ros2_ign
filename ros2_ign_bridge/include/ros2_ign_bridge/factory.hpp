@@ -42,10 +42,11 @@ public:
   rclcpp::PublisherBase::SharedPtr
   create_ros2_publisher(
     rclcpp::Node::SharedPtr ros2_node,
-    const std::string & topic_name)
+    const std::string & topic_name,
+    size_t queue_size)
   {
     std::shared_ptr<rclcpp::Publisher<ROS2_T>> publisher =
-      ros2_node->create_publisher<ROS2_T>(topic_name, rclcpp::QoS(rclcpp::KeepLast(1)));
+      ros2_node->create_publisher<ROS2_T>(topic_name, rclcpp::QoS(rclcpp::KeepLast(queue_size)));
     return publisher;
   }
 
@@ -61,12 +62,14 @@ public:
   create_ros2_subscriber(
     rclcpp::Node::SharedPtr ros2_node,
     const std::string & topic_name,
+    size_t queue_size,
     ignition::transport::Node::Publisher & ign_pub)
   {
     std::function<void(std::shared_ptr<const ROS2_T>)> fn =
       std::bind(&Factory<ROS2_T, IGN_T>::ros2_callback, std::placeholders::_1, ign_pub);
     std::shared_ptr<rclcpp::Subscription<ROS2_T>> subscription =
-      ros2_node->create_subscription<ROS2_T>(topic_name, rclcpp::QoS(rclcpp::KeepLast(1)), fn);
+      ros2_node->create_subscription<ROS2_T>(
+      topic_name, rclcpp::QoS(rclcpp::KeepLast(queue_size)), fn);
     return subscription;
   }
 

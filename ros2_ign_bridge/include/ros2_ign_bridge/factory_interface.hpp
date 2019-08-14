@@ -34,7 +34,8 @@ public:
   rclcpp::PublisherBase::SharedPtr
   create_ros2_publisher(
     rclcpp::Node::SharedPtr ros2_node,
-    const std::string & topic_name) = 0;
+    const std::string & topic_name,
+    size_t queue_size) = 0;
 
   virtual
   ignition::transport::Node::Publisher
@@ -47,6 +48,7 @@ public:
   create_ros2_subscriber(
     rclcpp::Node::SharedPtr ros2_node,
     const std::string & topic_name,
+    size_t queue_size,
     ignition::transport::Node::Publisher & ign_pub) = 0;
 
   virtual
