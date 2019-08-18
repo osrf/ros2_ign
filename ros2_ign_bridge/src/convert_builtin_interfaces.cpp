@@ -14,8 +14,88 @@
 
 #include <ros2_ign_bridge/convert_builtin_interfaces.hpp>
 
+#include <limits>
+#include <string>
+
 namespace ros2_ign_bridge
 {
+
+// This can be used to replace `::` with `/` to make frame_id compatible with TF
+std::string replace_delimiter(
+  const std::string & input,
+  const std::string & old_delim,
+  const std::string new_delim)
+{
+  std::string output;
+  output.reserve(input.size());
+
+  std::size_t last_pos = 0;
+
+  while (last_pos < input.size()) {
+    std::size_t pos = input.find(old_delim, last_pos);
+    output += input.substr(last_pos, pos - last_pos);
+    if (pos != std::string::npos) {
+      output += new_delim;
+      pos += old_delim.size();
+    }
+    last_pos = pos;
+  }
+
+  return output;
+}
+
+
+std::string frame_id_ign_to_ros2(const std::string & frame_id)
+{
+  return replace_delimiter(frame_id, "::", "/");
+}
+
+template<>
+void
+convert_ros2_to_ign(
+  const std_msgs::msg::Float32 & ros2_msg,
+  ignition::msgs::Float & ign_msg)
+{
+  ign_msg.set_data(ros2_msg.data);
+}
+
+template<>
+void
+convert_ign_to_ros2(
+  const ignition::msgs::Float & ign_msg,
+  std_msgs::msg::Float32 & ros2_msg)
+{
+  ros2_msg.data = ign_msg.data();
+}
+
+template<>
+void
+convert_ros2_to_ign(
+  const std_msgs::msg::Header & ros2_msg,
+  ignition::msgs::Header & ign_msg)
+{
+  ign_msg.mutable_stamp()->set_sec(ros2_msg.stamp.sec);
+  ign_msg.mutable_stamp()->set_nsec(ros2_msg.stamp.nanosec);
+  auto newPair = ign_msg.add_data();
+  newPair->set_key("frame_id");
+  newPair->add_value(ros2_msg.frame_id);
+}
+
+template<>
+void
+convert_ign_to_ros2(
+  const ignition::msgs::Header & ign_msg,
+  std_msgs::msg::Header & ros2_msg)
+{
+  ros2_msg.stamp = rclcpp::Time(ign_msg.stamp().sec(), ign_msg.stamp().nsec());
+  for (auto i = 0; i < ign_msg.data_size(); ++i) {
+    auto aPair = ign_msg.data(i);
+    if (aPair.key() == "frame_id" && aPair.value_size() > 0) {
+      ros2_msg.frame_id = frame_id_ign_to_ros2(aPair.value(0));
+    }
+  }
+}
+
 template<>
 void
 convert_ros2_to_ign(
@@ -32,6 +112,810 @@ convert_ign_to_ros2(
   std_msgs::msg::String & ros2_msg)
 {
   ros2_msg.data = ign_msg.data();
+}
+
+template<>
+void
+convert_ign_to_ros2(
+  const ignition::msgs::Clock & ign_msg,
+  rosgraph_msgs::msg::Clock & ros2_msg)
+{
+  ros2_msg.clock = rclcpp::Time(ign_msg.sim().sec(), ign_msg.sim().nsec());
+}
+
+template<>
+void
+convert_ros2_to_ign(
+  const rosgraph_msgs::msg::Clock & ros2_msg,
+  ignition::msgs::Clock & ign_msg)
+{
+  ign_msg.mutable_sim()->set_sec(ros2_msg.clock.sec);
+  ign_msg.mutable_sim()->set_nsec(ros2_msg.clock.nanosec);
+}
+
+template<>
+void
+convert_ros2_to_ign(
+  const geometry_msgs::msg::Quaternion & ros2_msg,
+  ignition::msgs::Quaternion & ign_msg)
+{
+  ign_msg.set_x(ros2_msg.x);
+  ign_msg.set_y(ros2_msg.y);
+  ign_msg.set_z(ros2_msg.z);
+  ign_msg.set_w(ros2_msg.w);
+}
+
+template<>
+void
+convert_ign_to_ros2(
+  const ignition::msgs::Quaternion & ign_msg,
+  geometry_msgs::msg::Quaternion & ros2_msg)
+{
+  ros2_msg.x = ign_msg.x();
+  ros2_msg.y = ign_msg.y();
+  ros2_msg.z = ign_msg.z();
+  ros2_msg.w = ign_msg.w();
+}
+
+template<>
+void
+convert_ros2_to_ign(
+  const geometry_msgs::msg::Vector3 & ros2_msg,
+  ignition::msgs::Vector3d & ign_msg)
+{
+  ign_msg.set_x(ros2_msg.x);
+  ign_msg.set_y(ros2_msg.y);
+  ign_msg.set_z(ros2_msg.z);
+}
+
+template<>
+void
+convert_ign_to_ros2(
+  const ignition::msgs::Vector3d & ign_msg,
+  geometry_msgs::msg::Vector3 & ros2_msg)
+{
+  ros2_msg.x = ign_msg.x();
+  ros2_msg.y = ign_msg.y();
+  ros2_msg.z = ign_msg.z();
+}
+
+template<>
+void
+convert_ros2_to_ign(
+  const geometry_msgs::msg::Point & ros2_msg,
+  ignition::msgs::Vector3d & ign_msg)
+{
+  ign_msg.set_x(ros2_msg.x);
+  ign_msg.set_y(ros2_msg.y);
+  ign_msg.set_z(ros2_msg.z);
+}
+
+template<>
+void
+convert_ign_to_ros2(
+  const ignition::msgs::Vector3d & ign_msg,
+  geometry_msgs::msg::Point & ros2_msg)
+{
+  ros2_msg.x = ign_msg.x();
+  ros2_msg.y = ign_msg.y();
+  ros2_msg.z = ign_msg.z();
+}
+
+template<>
+void
+convert_ros2_to_ign(
+  const geometry_msgs::msg::Pose & ros2_msg,
+  ignition::msgs::Pose & ign_msg)
+{
+  convert_ros2_to_ign(ros2_msg.position, *ign_msg.mutable_position());
+  convert_ros2_to_ign(ros2_msg.orientation, *ign_msg.mutable_orientation());
+}
+
+template<>
+void
+convert_ign_to_ros2(
+  const ignition::msgs::Pose & ign_msg,
+  geometry_msgs::msg::Pose & ros2_msg)
+{
+  convert_ign_to_ros2(ign_msg.position(), ros2_msg.position);
+  convert_ign_to_ros2(ign_msg.orientation(), ros2_msg.orientation);
+}
+
+template<>
+void
+convert_ros2_to_ign(
+  const geometry_msgs::msg::PoseStamped & ros2_msg,
+  ignition::msgs::Pose & ign_msg)
+{
+  convert_ros2_to_ign(ros2_msg.header, (*ign_msg.mutable_header()));
+  convert_ros2_to_ign(ros2_msg.pose, ign_msg);
+}
+
+template<>
+void
+convert_ign_to_ros2(
+  const ignition::msgs::Pose & ign_msg,
+  geometry_msgs::msg::PoseStamped & ros2_msg)
+{
+  convert_ign_to_ros2(ign_msg.header(), ros2_msg.header);
+  convert_ign_to_ros2(ign_msg, ros2_msg.pose);
+}
+
+template<>
+void
+convert_ros2_to_ign(
+  const geometry_msgs::msg::Transform & ros2_msg,
+  ignition::msgs::Pose & ign_msg)
+{
+  convert_ros2_to_ign(ros2_msg.translation, *ign_msg.mutable_position());
+  convert_ros2_to_ign(ros2_msg.rotation, *ign_msg.mutable_orientation());
+}
+
+template<>
+void
+convert_ign_to_ros2(
+  const ignition::msgs::Pose & ign_msg,
+  geometry_msgs::msg::Transform & ros2_msg)
+{
+  convert_ign_to_ros2(ign_msg.position(), ros2_msg.translation);
+  convert_ign_to_ros2(ign_msg.orientation(), ros2_msg.rotation);
+}
+
+template<>
+void
+convert_ros2_to_ign(
+  const geometry_msgs::msg::TransformStamped & ros2_msg,
+  ignition::msgs::Pose & ign_msg)
+{
+  convert_ros2_to_ign(ros2_msg.header, (*ign_msg.mutable_header()));
+  convert_ros2_to_ign(ros2_msg.transform, ign_msg);
+
+  auto newPair = ign_msg.mutable_header()->add_data();
+  newPair->set_key("child_frame_id");
+  newPair->add_value(ros2_msg.child_frame_id);
+}
+
+template<>
+void
+convert_ign_to_ros2(
+  const ignition::msgs::Pose & ign_msg,
+  geometry_msgs::msg::TransformStamped & ros2_msg)
+{
+  convert_ign_to_ros2(ign_msg.header(), ros2_msg.header);
+  convert_ign_to_ros2(ign_msg, ros2_msg.transform);
+  for (auto i = 0; i < ign_msg.header().data_size(); ++i) {
+    auto aPair = ign_msg.header().data(i);
+    if (aPair.key() == "child_frame_id" && aPair.value_size() > 0) {
+      ros2_msg.child_frame_id = frame_id_ign_to_ros2(aPair.value(0));
+      break;
+    }
+  }
+}
+
+template<>
+void
+convert_ros2_to_ign(
+  const geometry_msgs::msg::Twist & ros2_msg,
+  ignition::msgs::Twist & ign_msg)
+{
+  convert_ros2_to_ign(ros2_msg.linear, (*ign_msg.mutable_linear()));
+  convert_ros2_to_ign(ros2_msg.angular, (*ign_msg.mutable_angular()));
+}
+
+template<>
+void
+convert_ign_to_ros2(
+  const ignition::msgs::Twist & ign_msg,
+  geometry_msgs::msg::Twist & ros2_msg)
+{
+  convert_ign_to_ros2(ign_msg.linear(), ros2_msg.linear);
+  convert_ign_to_ros2(ign_msg.angular(), ros2_msg.angular);
+}
+
+template<>
+void
+convert_ros2_to_ign(
+  const nav_msgs::msg::Odometry & ros2_msg,
+  ignition::msgs::Odometry & ign_msg)
+{
+  convert_ros2_to_ign(ros2_msg.header, (*ign_msg.mutable_header()));
+  convert_ros2_to_ign(ros2_msg.pose.pose, (*ign_msg.mutable_pose()));
+  convert_ros2_to_ign(ros2_msg.twist.twist, (*ign_msg.mutable_twist()));
+
+  auto childFrame = ign_msg.mutable_header()->add_data();
+  childFrame->set_key("child_frame_id");
+  childFrame->add_value(ros2_msg.child_frame_id);
+}
+
+template<>
+void
+convert_ign_to_ros2(
+  const ignition::msgs::Odometry & ign_msg,
+  nav_msgs::msg::Odometry & ros2_msg)
+{
+  convert_ign_to_ros2(ign_msg.header(), ros2_msg.header);
+  convert_ign_to_ros2(ign_msg.pose(), ros2_msg.pose.pose);
+  convert_ign_to_ros2(ign_msg.twist(), ros2_msg.twist.twist);
+
+  for (auto i = 0; i < ign_msg.header().data_size(); ++i) {
+    auto aPair = ign_msg.header().data(i);
+    if (aPair.key() == "child_frame_id" && aPair.value_size() > 0) {
+      ros2_msg.child_frame_id = frame_id_ign_to_ros2(aPair.value(0));
+      break;
+    }
+  }
+}
+
+template<>
+void
+convert_ros2_to_ign(
+  const sensor_msgs::msg::FluidPressure & ros2_msg,
+  ignition::msgs::FluidPressure & ign_msg)
+{
+  convert_ros2_to_ign(ros2_msg.header, (*ign_msg.mutable_header()));
+  ign_msg.set_pressure(ros2_msg.fluid_pressure);
+  ign_msg.set_variance(ros2_msg.variance);
+}
+
+template<>
+void
+convert_ign_to_ros2(
+  const ignition::msgs::FluidPressure & ign_msg,
+  sensor_msgs::msg::FluidPressure & ros2_msg)
+{
+  convert_ign_to_ros2(ign_msg.header(), ros2_msg.header);
+  ros2_msg.fluid_pressure = ign_msg.pressure();
+  ros2_msg.variance = ign_msg.variance();
+}
+
+template<>
+void
+convert_ros2_to_ign(
+  const sensor_msgs::msg::Image & ros2_msg,
+  ignition::msgs::Image & ign_msg)
+{
+  convert_ros2_to_ign(ros2_msg.header, (*ign_msg.mutable_header()));
+
+  ign_msg.set_width(ros2_msg.width);
+  ign_msg.set_height(ros2_msg.height);
+
+  unsigned int num_channels;
+  unsigned int octets_per_channel;
+
+  if (ros2_msg.encoding == "mono8") {
+    ign_msg.set_pixel_format_type(ignition::msgs::PixelFormatType::L_INT8);
+    num_channels = 1;
+    octets_per_channel = 1u;
+  } else if (ros2_msg.encoding == "mono16") {
+    ign_msg.set_pixel_format_type(ignition::msgs::PixelFormatType::L_INT16);
+    num_channels = 1;
+    octets_per_channel = 2u;
+  } else if (ros2_msg.encoding == "rgb8") {
+    ign_msg.set_pixel_format_type(ignition::msgs::PixelFormatType::RGB_INT8);
+    num_channels = 3;
+    octets_per_channel = 1u;
+  } else if (ros2_msg.encoding == "rgba8") {
+    ign_msg.set_pixel_format_type(ignition::msgs::PixelFormatType::RGBA_INT8);
+    num_channels = 4;
+    octets_per_channel = 1u;
+  } else if (ros2_msg.encoding == "bgra8") {
+    ign_msg.set_pixel_format_type(ignition::msgs::PixelFormatType::BGRA_INT8);
+    num_channels = 4;
+    octets_per_channel = 1u;
+  } else if (ros2_msg.encoding == "rgb16") {
+    ign_msg.set_pixel_format_type(ignition::msgs::PixelFormatType::RGB_INT16);
+    num_channels = 3;
+    octets_per_channel = 2u;
+  } else if (ros2_msg.encoding == "bgr8") {
+    ign_msg.set_pixel_format_type(ignition::msgs::PixelFormatType::BGR_INT8);
+    num_channels = 3;
+    octets_per_channel = 1u;
+  } else if (ros2_msg.encoding == "bgr16") {
+    ign_msg.set_pixel_format_type(ignition::msgs::PixelFormatType::BGR_INT16);
+    num_channels = 3;
+    octets_per_channel = 2u;
+  } else if (ros2_msg.encoding == "32FC1") {
+    ign_msg.set_pixel_format_type(ignition::msgs::PixelFormatType::R_FLOAT32);
+    num_channels = 1;
+    octets_per_channel = 4u;
+  } else {
+    ign_msg.set_pixel_format_type(ignition::msgs::PixelFormatType::UNKNOWN_PIXEL_FORMAT);
+    std::cerr << "Unsupported pixel format [" << ros2_msg.encoding << "]" << std::endl;
+    return;
+  }
+
+  ign_msg.set_step(ign_msg.width() * num_channels * octets_per_channel);
+
+  ign_msg.set_data(&(ros2_msg.data[0]), ign_msg.step() * ign_msg.height());
+}
+
+template<>
+void
+convert_ign_to_ros2(
+  const ignition::msgs::Image & ign_msg,
+  sensor_msgs::msg::Image & ros2_msg)
+{
+  convert_ign_to_ros2(ign_msg.header(), ros2_msg.header);
+
+  ros2_msg.height = ign_msg.height();
+  ros2_msg.width = ign_msg.width();
+
+  unsigned int num_channels;
+  unsigned int octets_per_channel;
+
+  if (ign_msg.pixel_format_type() == ignition::msgs::PixelFormatType::L_INT8) {
+    ros2_msg.encoding = "mono8";
+    num_channels = 1;
+    octets_per_channel = 1u;
+  } else if (ign_msg.pixel_format_type() == ignition::msgs::PixelFormatType::L_INT16) {
+    ros2_msg.encoding = "mono16";
+    num_channels = 1;
+    octets_per_channel = 2u;
+  } else if (ign_msg.pixel_format_type() == ignition::msgs::PixelFormatType::RGB_INT8) {
+    ros2_msg.encoding = "rgb8";
+    num_channels = 3;
+    octets_per_channel = 1u;
+  } else if (ign_msg.pixel_format_type() == ignition::msgs::PixelFormatType::RGBA_INT8) {
+    ros2_msg.encoding = "rgba8";
+    num_channels = 4;
+    octets_per_channel = 1u;
+  } else if (ign_msg.pixel_format_type() == ignition::msgs::PixelFormatType::BGRA_INT8) {
+    ros2_msg.encoding = "bgra8";
+    num_channels = 4;
+    octets_per_channel = 1u;
+  } else if (ign_msg.pixel_format_type() == ignition::msgs::PixelFormatType::RGB_INT16) {
+    ros2_msg.encoding = "rgb16";
+    num_channels = 3;
+    octets_per_channel = 2u;
+  } else if (ign_msg.pixel_format_type() == ignition::msgs::PixelFormatType::BGR_INT8) {
+    ros2_msg.encoding = "bgr8";
+    num_channels = 3;
+    octets_per_channel = 1u;
+  } else if (ign_msg.pixel_format_type() == ignition::msgs::PixelFormatType::BGR_INT16) {
+    ros2_msg.encoding = "bgr16";
+    num_channels = 3;
+    octets_per_channel = 2u;
+  } else if (ign_msg.pixel_format_type() == ignition::msgs::PixelFormatType::R_FLOAT32) {
+    ros2_msg.encoding = "32FC1";
+    num_channels = 1;
+    octets_per_channel = 4u;
+  } else {
+    std::cerr << "Unsupported pixel format [" << ign_msg.pixel_format_type() << "]" << std::endl;
+    return;
+  }
+
+  ros2_msg.is_bigendian = false;
+  ros2_msg.step = ros2_msg.width * num_channels * octets_per_channel;
+
+  auto count = ros2_msg.step * ros2_msg.height;
+  ros2_msg.data.resize(ros2_msg.step * ros2_msg.height);
+  std::copy(
+    ign_msg.data().begin(),
+    ign_msg.data().begin() + count,
+    ros2_msg.data.begin());
+}
+
+template<>
+void
+convert_ros2_to_ign(
+  const sensor_msgs::msg::CameraInfo & ros2_msg,
+  ignition::msgs::CameraInfo & ign_msg)
+{
+  convert_ros2_to_ign(ros2_msg.header, (*ign_msg.mutable_header()));
+
+  ign_msg.set_width(ros2_msg.width);
+  ign_msg.set_height(ros2_msg.height);
+
+  auto distortion = ign_msg.mutable_distortion();
+  if (ros2_msg.distortion_model == "plumb_bob") {
+    distortion->set_model(ignition::msgs::CameraInfo::Distortion::PLUMB_BOB);
+  } else if (ros2_msg.distortion_model == "rational_polynomial") {
+    distortion->set_model(ignition::msgs::CameraInfo::Distortion::RATIONAL_POLYNOMIAL);
+  } else if (ros2_msg.distortion_model == "equidistant") {
+    distortion->set_model(ignition::msgs::CameraInfo::Distortion::EQUIDISTANT);
+  } else {
+    std::cerr << "Unsupported distortion model [" << ros2_msg.distortion_model << "]" << std::endl;
+  }
+
+  for (double i : ros2_msg.d) {
+    distortion->add_k(i);
+  }
+
+  auto intrinsics = ign_msg.mutable_intrinsics();
+  for (double i : ros2_msg.k) {
+    intrinsics->add_k(i);
+  }
+
+  auto projection = ign_msg.mutable_projection();
+  for (double i : ros2_msg.p) {
+    projection->add_p(i);
+  }
+
+  for (auto i = 0u; i < ros2_msg.r.size(); ++i) {
+    ign_msg.add_rectification_matrix(ros2_msg.r[i]);
+  }
+}
+
+template<>
+void
+convert_ign_to_ros2(
+  const ignition::msgs::CameraInfo & ign_msg,
+  sensor_msgs::msg::CameraInfo & ros2_msg)
+{
+  convert_ign_to_ros2(ign_msg.header(), ros2_msg.header);
+
+  ros2_msg.height = ign_msg.height();
+  ros2_msg.width = ign_msg.width();
+
+  if (ign_msg.has_distortion()) {
+    const auto & distortion = ign_msg.distortion();
+    if (distortion.model() == ignition::msgs::CameraInfo::Distortion::PLUMB_BOB) {
+      ros2_msg.distortion_model = "plumb_bob";
+    } else if (distortion.model() == ignition::msgs::CameraInfo::Distortion::RATIONAL_POLYNOMIAL) {
+      ros2_msg.distortion_model = "rational_polynomial";
+    } else if (distortion.model() == ignition::msgs::CameraInfo::Distortion::EQUIDISTANT) {
+      ros2_msg.distortion_model = "equidistant";
+    } else {
+      std::cerr << "Unsupported distortion model [" << distortion.model() << "]" << std::endl;
+    }
+
+    ros2_msg.d.resize(distortion.k_size());
+    for (auto i = 0; i < distortion.k_size(); ++i) {
+      ros2_msg.d[i] = distortion.k(i);
+    }
+  }
+
+  if (ign_msg.has_intrinsics()) {
+    const auto & intrinsics = ign_msg.intrinsics();
+
+    for (auto i = 0; i < intrinsics.k_size(); ++i) {
+      ros2_msg.k[i] = intrinsics.k(i);
+    }
+  }
+
+  if (ign_msg.has_projection()) {
+    const auto & projection = ign_msg.projection();
+
+    for (auto i = 0; i < projection.p_size(); ++i) {
+      ros2_msg.p[i] = projection.p(i);
+    }
+  }
+
+  for (auto i = 0; i < ign_msg.rectification_matrix_size(); ++i) {
+    ros2_msg.r[i] = ign_msg.rectification_matrix(i);
+  }
+}
+
+template<>
+void
+convert_ros2_to_ign(
+  const sensor_msgs::msg::Imu & ros2_msg,
+  ignition::msgs::IMU & ign_msg)
+{
+  convert_ros2_to_ign(ros2_msg.header, (*ign_msg.mutable_header()));
+
+  // ToDo: Verify that this is the expected value (probably not).
+  ign_msg.set_entity_name(ros2_msg.header.frame_id);
+
+  convert_ros2_to_ign(ros2_msg.orientation, (*ign_msg.mutable_orientation()));
+  convert_ros2_to_ign(ros2_msg.angular_velocity, (*ign_msg.mutable_angular_velocity()));
+  convert_ros2_to_ign(ros2_msg.linear_acceleration, (*ign_msg.mutable_linear_acceleration()));
+}
+
+template<>
+void
+convert_ign_to_ros2(
+  const ignition::msgs::IMU & ign_msg,
+  sensor_msgs::msg::Imu & ros2_msg)
+{
+  convert_ign_to_ros2(ign_msg.header(), ros2_msg.header);
+  convert_ign_to_ros2(ign_msg.orientation(), ros2_msg.orientation);
+  convert_ign_to_ros2(ign_msg.angular_velocity(), ros2_msg.angular_velocity);
+  convert_ign_to_ros2(ign_msg.linear_acceleration(), ros2_msg.linear_acceleration);
+
+  // Covariances not supported in Ignition::msgs::IMU
+}
+
+template<>
+void
+convert_ros2_to_ign(
+  const sensor_msgs::msg::JointState & ros2_msg,
+  ignition::msgs::Model & ign_msg)
+{
+  convert_ros2_to_ign(ros2_msg.header, (*ign_msg.mutable_header()));
+
+  for (auto i = 0u; i < ros2_msg.position.size(); ++i) {
+    auto newJoint = ign_msg.add_joint();
+    newJoint->set_name(ros2_msg.name[i]);
+    newJoint->mutable_axis1()->set_position(ros2_msg.position[i]);
+    newJoint->mutable_axis1()->set_velocity(ros2_msg.velocity[i]);
+    newJoint->mutable_axis1()->set_force(ros2_msg.effort[i]);
+  }
+}
+
+template<>
+void
+convert_ign_to_ros2(
+  const ignition::msgs::Model & ign_msg,
+  sensor_msgs::msg::JointState & ros2_msg)
+{
+  convert_ign_to_ros2(ign_msg.header(), ros2_msg.header);
+
+  for (auto i = 0; i < ign_msg.joint_size(); ++i) {
+    ros2_msg.name.push_back(ign_msg.joint(i).name());
+    ros2_msg.position.push_back(ign_msg.joint(i).axis1().position());
+    ros2_msg.velocity.push_back(ign_msg.joint(i).axis1().velocity());
+    ros2_msg.effort.push_back(ign_msg.joint(i).axis1().force());
+  }
+}
+
+template<>
+void
+convert_ros2_to_ign(
+  const sensor_msgs::msg::LaserScan & ros2_msg,
+  ignition::msgs::LaserScan & ign_msg)
+{
+  const unsigned int num_readings =
+    (ros2_msg.angle_max - ros2_msg.angle_min) / ros2_msg.angle_increment;
+
+  convert_ros2_to_ign(ros2_msg.header, (*ign_msg.mutable_header()));
+  ign_msg.set_frame(ros2_msg.header.frame_id);
+  ign_msg.set_angle_min(ros2_msg.angle_min);
+  ign_msg.set_angle_max(ros2_msg.angle_max);
+  ign_msg.set_angle_step(ros2_msg.angle_increment);
+  ign_msg.set_range_min(ros2_msg.range_min);
+  ign_msg.set_range_max(ros2_msg.range_max);
+  ign_msg.set_count(num_readings);
+
+  // Not supported in sensor_msgs::msg::LaserScan.
+  ign_msg.set_vertical_angle_min(0.0);
+  ign_msg.set_vertical_angle_max(0.0);
+  ign_msg.set_vertical_angle_step(0.0);
+  ign_msg.set_vertical_count(0u);
+
+  for (auto i = 0u; i < ign_msg.count(); ++i) {
+    ign_msg.add_ranges(ros2_msg.ranges[i]);
+    ign_msg.add_intensities(ros2_msg.intensities[i]);
+  }
+}
+
+template<>
+void
+convert_ign_to_ros2(
+  const ignition::msgs::LaserScan & ign_msg,
+  sensor_msgs::msg::LaserScan & ros2_msg)
+{
+  convert_ign_to_ros2(ign_msg.header(), ros2_msg.header);
+  ros2_msg.header.frame_id = frame_id_ign_to_ros2(ign_msg.frame());
+
+  ros2_msg.angle_min = ign_msg.angle_min();
+  ros2_msg.angle_max = ign_msg.angle_max();
+  ros2_msg.angle_increment = ign_msg.angle_step();
+
+  // Not supported in ignition::msgs::LaserScan.
+  ros2_msg.time_increment = 0.0;
+  ros2_msg.scan_time = 0.0;
+
+  ros2_msg.range_min = ign_msg.range_min();
+  ros2_msg.range_max = ign_msg.range_max();
+
+  auto count = ign_msg.count();
+  auto vertical_count = ign_msg.vertical_count();
+
+  // If there are multiple vertical beams, use the one in the middle.
+  size_t start = (vertical_count / 2) * count;
+
+  // Copy ranges into ROS message.
+  ros2_msg.ranges.resize(count);
+  std::copy(
+    ign_msg.ranges().begin() + start,
+    ign_msg.ranges().begin() + start + count,
+    ros2_msg.ranges.begin());
+
+  // Copy intensities into ROS message.
+  ros2_msg.intensities.resize(count);
+  std::copy(
+    ign_msg.intensities().begin() + start,
+    ign_msg.intensities().begin() + start + count,
+    ros2_msg.intensities.begin());
+}
+
+template<>
+void
+convert_ros2_to_ign(
+  const sensor_msgs::msg::MagneticField & ros2_msg,
+  ignition::msgs::Magnetometer & ign_msg)
+{
+  convert_ros2_to_ign(ros2_msg.header, (*ign_msg.mutable_header()));
+  convert_ros2_to_ign(ros2_msg.magnetic_field, (*ign_msg.mutable_field_tesla()));
+}
+
+template<>
+void
+convert_ign_to_ros2(
+  const ignition::msgs::Magnetometer & ign_msg,
+  sensor_msgs::msg::MagneticField & ros2_msg)
+{
+  convert_ign_to_ros2(ign_msg.header(), ros2_msg.header);
+  convert_ign_to_ros2(ign_msg.field_tesla(), ros2_msg.magnetic_field);
+
+  // magnetic_field_covariance is not supported in Ignition::Msgs::Magnetometer.
+}
+
+template<>
+void
+convert_ros2_to_ign(
+  const sensor_msgs::msg::PointCloud2 & ros2_msg,
+  ignition::msgs::PointCloudPacked & ign_msg)
+{
+  convert_ros2_to_ign(ros2_msg.header, (*ign_msg.mutable_header()));
+
+  ign_msg.set_height(ros2_msg.height);
+  ign_msg.set_width(ros2_msg.width);
+  ign_msg.set_is_bigendian(ros2_msg.is_bigendian);
+  ign_msg.set_point_step(ros2_msg.point_step);
+  ign_msg.set_row_step(ros2_msg.row_step);
+  ign_msg.set_is_dense(ros2_msg.is_dense);
+  ign_msg.mutable_data()->resize(ros2_msg.data.size());
+  memcpy(ign_msg.mutable_data()->data(), ros2_msg.data.data(), ros2_msg.data.size());
+
+  for (const auto & field : ros2_msg.fields) {
+    ignition::msgs::PointCloudPacked::Field * pf = ign_msg.add_field();
+    pf->set_name(field.name);
+    pf->set_count(field.count);
+    pf->set_offset(field.offset);
+    switch (field.datatype) {
+      default:
+      case sensor_msgs::msg::PointField::INT8:
+        pf->set_datatype(ignition::msgs::PointCloudPacked::Field::INT8);
+        break;
+      case sensor_msgs::msg::PointField::UINT8:
+        pf->set_datatype(ignition::msgs::PointCloudPacked::Field::UINT8);
+        break;
+      case sensor_msgs::msg::PointField::INT16:
+        pf->set_datatype(ignition::msgs::PointCloudPacked::Field::INT16);
+        break;
+      case sensor_msgs::msg::PointField::UINT16:
+        pf->set_datatype(ignition::msgs::PointCloudPacked::Field::UINT16);
+        break;
+      case sensor_msgs::msg::PointField::INT32:
+        pf->set_datatype(ignition::msgs::PointCloudPacked::Field::INT32);
+        break;
+      case sensor_msgs::msg::PointField::UINT32:
+        pf->set_datatype(ignition::msgs::PointCloudPacked::Field::UINT32);
+        break;
+      case sensor_msgs::msg::PointField::FLOAT32:
+        pf->set_datatype(ignition::msgs::PointCloudPacked::Field::FLOAT32);
+        break;
+      case sensor_msgs::msg::PointField::FLOAT64:
+        pf->set_datatype(ignition::msgs::PointCloudPacked::Field::FLOAT64);
+        break;
+    }
+  }
+}
+
+template<>
+void
+convert_ign_to_ros2(
+  const ignition::msgs::PointCloudPacked & ign_msg,
+  sensor_msgs::msg::PointCloud2 & ros2_msg)
+{
+  convert_ign_to_ros2(ign_msg.header(), ros2_msg.header);
+
+  ros2_msg.height = ign_msg.height();
+  ros2_msg.width = ign_msg.width();
+  ros2_msg.is_bigendian = ign_msg.is_bigendian();
+  ros2_msg.point_step = ign_msg.point_step();
+  ros2_msg.row_step = ign_msg.row_step();
+  ros2_msg.is_dense = ign_msg.is_dense();
+  ros2_msg.data.resize(ign_msg.data().size());
+  memcpy(ros2_msg.data.data(), ign_msg.data().c_str(), ign_msg.data().size());
+
+  for (int i = 0; i < ign_msg.field_size(); ++i) {
+    sensor_msgs::msg::PointField pf;
+    pf.name = ign_msg.field(i).name();
+    pf.count = ign_msg.field(i).count();
+    pf.offset = ign_msg.field(i).offset();
+    switch (ign_msg.field(i).datatype()) {
+      default:
+      case ignition::msgs::PointCloudPacked::Field::INT8:
+        pf.datatype = sensor_msgs::msg::PointField::INT8;
+        break;
+      case ignition::msgs::PointCloudPacked::Field::UINT8:
+        pf.datatype = sensor_msgs::msg::PointField::UINT8;
+        break;
+      case ignition::msgs::PointCloudPacked::Field::INT16:
+        pf.datatype = sensor_msgs::msg::PointField::INT16;
+        break;
+      case ignition::msgs::PointCloudPacked::Field::UINT16:
+        pf.datatype = sensor_msgs::msg::PointField::UINT16;
+        break;
+      case ignition::msgs::PointCloudPacked::Field::INT32:
+        pf.datatype = sensor_msgs::msg::PointField::INT32;
+        break;
+      case ignition::msgs::PointCloudPacked::Field::UINT32:
+        pf.datatype = sensor_msgs::msg::PointField::UINT32;
+        break;
+      case ignition::msgs::PointCloudPacked::Field::FLOAT32:
+        pf.datatype = sensor_msgs::msg::PointField::FLOAT32;
+        break;
+      case ignition::msgs::PointCloudPacked::Field::FLOAT64:
+        pf.datatype = sensor_msgs::msg::PointField::FLOAT64;
+        break;
+    }
+    ros2_msg.fields.push_back(pf);
+  }
+}
+
+template<>
+void
+convert_ros2_to_ign(
+  const sensor_msgs::msg::BatteryState & ros2_msg,
+  ignition::msgs::BatteryState & ign_msg)
+{
+  convert_ros2_to_ign(ros2_msg.header, (*ign_msg.mutable_header()));
+
+  ign_msg.set_voltage(ros2_msg.voltage);
+  ign_msg.set_current(ros2_msg.current);
+  ign_msg.set_charge(ros2_msg.charge);
+  ign_msg.set_capacity(ros2_msg.capacity);
+  ign_msg.set_percentage(ros2_msg.percentage);
+
+  switch (ros2_msg.power_supply_status) {
+    case sensor_msgs::msg::BatteryState::POWER_SUPPLY_STATUS_UNKNOWN:
+      ign_msg.set_power_supply_status(ignition::msgs::BatteryState::UNKNOWN);
+      break;
+    case sensor_msgs::msg::BatteryState::POWER_SUPPLY_STATUS_CHARGING:
+      ign_msg.set_power_supply_status(ignition::msgs::BatteryState::CHARGING);
+      break;
+    case sensor_msgs::msg::BatteryState::POWER_SUPPLY_STATUS_DISCHARGING:
+      ign_msg.set_power_supply_status(ignition::msgs::BatteryState::DISCHARGING);
+      break;
+    case sensor_msgs::msg::BatteryState::POWER_SUPPLY_STATUS_NOT_CHARGING:
+      ign_msg.set_power_supply_status(ignition::msgs::BatteryState::NOT_CHARGING);
+      break;
+    case sensor_msgs::msg::BatteryState::POWER_SUPPLY_STATUS_FULL:
+      ign_msg.set_power_supply_status(ignition::msgs::BatteryState::FULL);
+      break;
+    default:
+      std::cerr << "Unsupported power supply status [" << ros2_msg.power_supply_status << "]\n";
+  }
+}
+
+template<>
+void
+convert_ign_to_ros2(
+  const ignition::msgs::BatteryState & ign_msg,
+  sensor_msgs::msg::BatteryState & ros2_msg)
+{
+  convert_ign_to_ros2(ign_msg.header(), ros2_msg.header);
+
+  ros2_msg.voltage = ign_msg.voltage();
+  ros2_msg.current = ign_msg.current();
+  ros2_msg.charge = ign_msg.charge();
+  ros2_msg.capacity = ign_msg.capacity();
+  ros2_msg.design_capacity = std::numeric_limits<double>::quiet_NaN();
+  ros2_msg.percentage = ign_msg.percentage();
+
+  if (ign_msg.power_supply_status() == ignition::msgs::BatteryState::UNKNOWN) {
+    ros2_msg.power_supply_status = sensor_msgs::msg::BatteryState::POWER_SUPPLY_STATUS_UNKNOWN;
+  } else if (ign_msg.power_supply_status() == ignition::msgs::BatteryState::CHARGING) {
+    ros2_msg.power_supply_status = sensor_msgs::msg::BatteryState::POWER_SUPPLY_STATUS_CHARGING;
+  } else if (ign_msg.power_supply_status() == ignition::msgs::BatteryState::DISCHARGING) {
+    ros2_msg.power_supply_status = sensor_msgs::msg::BatteryState::POWER_SUPPLY_STATUS_DISCHARGING;
+  } else if (ign_msg.power_supply_status() == ignition::msgs::BatteryState::NOT_CHARGING) {
+    ros2_msg.power_supply_status = sensor_msgs::msg::BatteryState::POWER_SUPPLY_STATUS_NOT_CHARGING;
+  } else if (ign_msg.power_supply_status() == ignition::msgs::BatteryState::FULL) {
+    ros2_msg.power_supply_status = sensor_msgs::msg::BatteryState::POWER_SUPPLY_STATUS_FULL;
+  } else {
+    std::cerr << "Unsupported power supply status [" <<
+      ign_msg.power_supply_status() << "]" << std::endl;
+  }
+
+  ros2_msg.power_supply_health = sensor_msgs::msg::BatteryState::POWER_SUPPLY_HEALTH_UNKNOWN;
+  ros2_msg.power_supply_technology =
+    sensor_msgs::msg::BatteryState::POWER_SUPPLY_TECHNOLOGY_UNKNOWN;
+  ros2_msg.present = true;
 }
 
 }  // namespace ros2_ign_bridge

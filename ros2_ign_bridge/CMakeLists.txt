@@ -11,7 +11,11 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 find_package(ament_cmake REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rosgraph_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 
 find_package(ignition-msgs4 QUIET REQUIRED)
@@ -28,6 +32,7 @@ set(common_sources
 )
 
 set(bridge_executables
+  parameter_bridge
   static_bridge
 )
 
@@ -41,7 +46,11 @@ foreach(bridge ${bridge_executables})
     ignition-transport${IGN_TRANSPORT_VER}::core
   )
   ament_target_dependencies(${bridge}
+    "geometry_msgs"
+    "nav_msgs"
     "rclcpp"
+    "rosgraph_msgs"
+    "sensor_msgs"
     "std_msgs"
   )
   install(TARGETS ${bridge}
