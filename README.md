@@ -1,12 +1,3 @@
-# Integration between ROS 2 and Ignition
+# Archived
 
-This repository holds packages that provide integration between
-[ROS 2](https://index.ros.org/doc/ros2/) and [Ignition](https://ignitionrobotics.org):
-
-* `ros1_ign`: Metapackage which provides all the other packages.
-* `ros1_ign_bridge`: Transport bridge between ROS 1 and Ignition transport.
-* `ros1_ign_gazebo_demos`: Demos using the ROS-Ignition integration.
-
-See [ros1_ign](https://github.com/osrf/ros1_ign) for the integration
-between [ROS 1](http://www.ros.org/) and Ignition.
-
+Please see https://github.com/ignitionrobotics/ros_ign instead.
